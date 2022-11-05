@@ -9,9 +9,8 @@
     <script src="TemplateData/UnityProgress.js"></script>
     <script src="Build/UnityLoader.js"></script>
     <script>
-      var unityInstance = UnityLoader.instantiate("unityContainer", "Build/Build13.json", {onProgress: UnityProgress});
+      var unityInstance = UnityLoader.instantiate("unityContainer", "Build/Build14.json", {onProgress: UnityProgress});
     </script>
-
 
     <script type = "text/javascript" language = "javascript">
     var fullscreenID;
@@ -37,7 +36,7 @@
 
     var text;
     var link;
-    var adCounter = 4;
+    var adCounter = 1;
     </script>
 
     <!-- Yandex.RTB -->
@@ -98,6 +97,54 @@
     <script type = "text/javascript" language = "javascript">
 
 // Initialization
+    function CheckStats() {
+    }
+
+    function GetPlayerData(key) {
+      var callbackKeys = function(status, data, error) {
+        if (data) {
+          if (data.keys.length > 0) {
+            for (let i = 0; i <= data.keys.length; i++) {
+              if (i == data.keys.length) {
+                unityInstance.SendMessage('PlayerManager', 'GetPlayerDataFromPlayerPrefs', key);
+                break;
+              } else {
+                if (data.keys[i] == key) {
+
+                  var callback = function(status, data, error) {
+                    if (data) {
+                      if (typeof data.data[Object.keys(data.data)[0]] !== "undefined") {
+                        let reskey = key + "|" + data.data[Object.keys(data.data)[0]];
+                        unityInstance.SendMessage('PlayerManager', 'GetPlayerData', reskey);
+                      } else {
+                        unityInstance.SendMessage('PlayerManager', 'GetPlayerDataFromPlayerPrefs', key);
+                      }
+                    } else {
+                      console.log(error);
+                      unityInstance.SendMessage('PlayerManager', 'GetPlayerDataError', key);
+                    }
+                  };
+                  FAPI.Client.call({"method":"storage.get", "keys" : [key]}, callback);
+                  break;
+                }
+              }
+            }
+          } else {
+            unityInstance.SendMessage('PlayerManager', 'GetPlayerDataFromPlayerPrefs', key);
+          }
+        }
+      };
+      FAPI.Client.call({"method":"storage.getKeys"}, callbackKeys);
+    }
+
+    function SetPlayerData(key, data) {
+      FAPI.Client.call({"method":"storage.set", "key" : key, "value" : data});
+
+      let reskey = key + "|" + data;
+      unityInstance.SendMessage('PlayerManager', 'SetPlayerDataInPlayerPrefs', reskey);
+    }
+
+
     function VerticalInitialization() {
       unityInstance.SendMessage('PlatformManager', 'VerticalInitialization', 0);
     }
@@ -137,7 +184,7 @@
 // OK
   function API_callback(method, result, data) {
     if (method === "showAd") {
-      //unityInstance.SendMessage('AdsManager', 'CloseLoading');
+      unityInstance.SendMessage('AdsManager', 'CloseLoading');
       if (data === "ad_shown") {
         unityInstance.SendMessage('AdsManager', 'AdShowed');
       } else if (data === "no_ads" || data === "call_limit") {
@@ -148,16 +195,20 @@
       if (data === "ready") {
         FAPI.UI.showLoadedAd();
       } else if (data === "empty" || data === "call_limit" || data === "disabled" || data === "no_ads") {
-        //unityInstance.SendMessage('AdsManager', 'CloseLoading');
+        unityInstance.SendMessage('AdsManager', 'CloseLoading');
         //unityInstance.SendMessage('AdsManager', 'TryToLoadCustomRewardVideo');
+        FAPI.UI.showAd();
+        unityInstance.SendMessage('AdsManager', 'GetReward');
       }
 
     } else if (method === "showLoadedAd") {
-      //unityInstance.SendMessage('AdsManager', 'CloseLoading');
+      unityInstance.SendMessage('AdsManager', 'CloseLoading');
       if (data === "complete") {
         unityInstance.SendMessage('AdsManager', 'GetReward');
       } else if (data === "not_prepared" || data === "mp4_not_supported") {
         //unityInstance.SendMessage('AdsManager', 'TryToLoadCustomRewardVideo');
+        FAPI.UI.showAd();
+        unityInstance.SendMessage('AdsManager', 'GetReward');
       }
     }
     else if (method === "joinGroup") {
@@ -186,9 +237,9 @@
   }
 
     function ShowOKInterstational() {
-      if (adCounter > 3)
+      if (adCounter > 2)
       {
-        //unityInstance.SendMessage('AdsManager', 'OpenLoading');
+        unityInstance.SendMessage('AdsManager', 'OpenLoading');
         FAPI.UI.showAd();
       } else {
         adCounter++;
@@ -196,7 +247,7 @@
     }
 
     function ShowOKRewardVideo() {
-      //unityInstance.SendMessage('AdsManager', 'OpenLoading');
+      unityInstance.SendMessage('AdsManager', 'OpenLoading');
       FAPI.UI.loadAd();
     }
 
